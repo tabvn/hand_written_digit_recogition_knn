@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UED - Handwritten Digit Recognition</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container">
+    <div class="toolbar">
+        <button id="clear" class="btn">Clear</button>
+        <div class="spacer"></div>
+        <button id="predict" class="primary">Predict</button>
+    </div>
+    <div class="wrapper">
+        <div class="draw-container">
+            <canvas id="canvas"></canvas>
+            <div id="predicted-value"></div>
+        </div>
+        <div>
+            <canvas id="scale-canvas" width="18" height="24"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+    // ty le scale 5x
+    let width = 90
+    let height = 120
+    let strokeWidth = 5;
+    let clearButton = document.getElementById("clear");
+    let predictButton = document.getElementById("predict");
+    let drawing = false;
+
+
+    let topLeft = {x: width, y: height};
+    let maxWidth = 0;
+    let maxHeight = 0;
+
+    let point = {
+        x: 0,
+        y: 0,
+    };
+
+    let predictedValue = document.getElementById('predicted-value');
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    canvas.width = width;
+    canvas.height = height;
+    let scaleCanvas = document.getElementById("scale-canvas");
+    let scaleCtx = scaleCanvas.getContext("2d");
+
+    function reset() {
+        predictedValue.innerText = '';
+        canvas.width = width;
+        canvas.height = height;
+        point = {
+            x: 0,
+            y: 0,
+        }
+        topLeft = {x: width, y: height};
+        maxWidth = 0;
+        maxHeight = 0;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, width, height);
+
+        scaleCtx.clearRect(0, 0, 18, 24);
+        scaleCtx.fillStyle = "black";
+        scaleCtx.fillRect(0, 0, 18, 24);
+    }
+
+    function setPosition(e) {
+        point.x = e.clientX - canvas.offsetLeft;
+        point.y = e.clientY - canvas.offsetTop;
+
+        if (!drawing) {
+            return
+        }
+        if (point.x < topLeft.x && point.x > 0) {
+            topLeft.x = point.x;
+        }
+        if (point.y < topLeft.y && point.y > 0) {
+            topLeft.y = point.y;
+        }
+        if (point.x > maxWidth) {
+            maxWidth = point.x;
+        }
+        if (point.y > maxHeight && point.y > 0) {
+            maxHeight = point.y;
+        }
+    }
+
+    reset();
+
+    function onDrawing(e) {
+        drawing = true;
+        setPosition(e);
+    }
+
+    function onStopDrawing() {
+        drawing = false;
+    }
+
+    function draw(e) {
+        if (!drawing) return;
+        ctx.beginPath();
+        ctx.lineWidth = strokeWidth;
+        // Sets the end of the lines drawn
+        // to a round shape.
+        ctx.lineCap = 'round';
+
+        ctx.strokeStyle = 'red';
+
+        // The cursor to start drawing
+        // moves to this coordinate
+        ctx.moveTo(point.x, point.y);
+
+        // The position of the cursor
+        // gets updated as we move the
+        // mouse around.
+        setPosition(e);
+
+        // A line is traced from start
+        // coordinate to this coordinate
+        ctx.lineTo(point.x, point.y);
+
+        // Draws the line.
+        ctx.stroke();
+        drawClone(e);
+    }
+
+    function drawClone(e) {
+        let scaleFactor = 18 / width;
+
+        if (!drawing) return;
+        scaleCtx.beginPath();
+        scaleCtx.lineWidth = 2;
+        // Sets the end of the lines drawn
+        // to a round shape.
+        scaleCtx.lineCap = 'round';
+
+        scaleCtx.strokeStyle = 'red';
+
+        // The cursor to start drawing
+        // moves to this coordinate
+        let x = scaleFactor * point.x;
+        let y = scaleFactor * point.y;
+        scaleCtx.moveTo(x, y);
+        // A line is traced from start
+        // coordinate to this coordinate
+        scaleCtx.lineTo(x, y);
+        // Draws the line.
+        scaleCtx.stroke();
+    }
+
+    window.addEventListener('mousedown', onDrawing)
+    window.addEventListener("mouseup", onStopDrawing)
+    window.addEventListener('mousemove', draw)
+    clearButton.addEventListener('click', function () {
+        reset();
+    });
+
+    predictButton.addEventListener("click", function () {
+        let testData = [];
+        for (let y = 0; y < 24; y++) {
+            let row = [];
+            for (let x = 0; x < 18; x++) {
+                let imageData = scaleCtx.getImageData(x, y, 1, 1);
+                let p = imageData.data;
+                if (p[0] > 50 && p[1] === 0 && p[2] === 0) { // neu la mau do thi 1
+                    row.push(1);
+                } else {
+                    row.push(0);
+                }
+            }
+            testData.push(row);
+            row = [];
+        }
+        const data = JSON.stringify(testData);
+        fetch('/api/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': "application/json"
+            },
+            body: data,
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                predictedValue.innerText = `${data.value}`
+            });
+        console.log("testData", data);
+    });
+</script>
+</body>
+</html>
