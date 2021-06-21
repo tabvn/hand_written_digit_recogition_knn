@@ -2,6 +2,7 @@
 Hand written Digit recognition use KNN
 
 ```
+@U: Danang University of Science and Education
 @GVHD: Nguyen Thi Ngoc Anh
 @SVTH: Nguyen Dinh Toan - 18CNTT04
 ```
