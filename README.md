@@ -10,3 +10,15 @@ Hand written Digit recognition use KNN
 ## Video
 
 https://youtu.be/PDSDrj978F8
+
+
+## Installation 
+
+Donwload and install Golang https://golang.org/dl/
+
+Run demo
+
+```
+go run main.go
+
+```
